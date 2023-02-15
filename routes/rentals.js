@@ -1,6 +1,7 @@
-const { Rental } = require("../models/rental");
+const { Rental, validateRental } = require("../models/rental");
 const { Customer } = require("../models/customer");
 const { Movie } = require("../models/movie");
+const mongoose = require("mongoose");
 const express = require("express");
 const router = express.Router();
 
@@ -21,6 +22,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+  const { error } = validateRental(req.body);
+  if (error) return res.status(400).send(error.details[0].message);
+
   const customer = await Customer.findById(req.body.customerId);
   if (!customer) {
     return res.status(400).send("No Customer Found");
@@ -35,7 +39,7 @@ router.post("/", async (req, res) => {
     return res.status(400).send("Movie is out of stock");
   }
 
-  const rental = {
+  let rental = new Rental({
     customer: {
       _id: customer._id,
       name: customer.name,
@@ -45,15 +49,16 @@ router.post("/", async (req, res) => {
     movie: {
       _id: movie._id,
       title: movie.title,
-      dailyRentaRate: movie.dailyRentalRate,
+      dailyRentalRate: movie.dailyRentalRate,
     },
-  };
-  const result = await Rental.insertMany(rental);
+  });
+
+  await rental.save();
 
   movie.numberInStock--;
   movie.save();
 
-  res.send(result);
+  res.send(rental);
 });
 
 module.exports = router;
