@@ -8,34 +8,65 @@ router.get("/", async (req, res) => {
   res.send(user);
 });
 
-// Register User
+// Register User Using Async Await
 router.post("/register", async (req, res) => {
   const { error } = validateUser(req.body);
   if (error) return res.status(400).send(error.details[0].message);
+  try {
+    let user = await User.findOne({
+      $or: [{ username: req.body.username }, { email: req.body.email }],
+    });
 
-  User.findOne(
-    { username: req.body.username, email: req.body.email },
-    function (err, user) {
-      if (err) return console.error("Error:", err);
+    if (user && user != null) return res.send("User or Email already existed");
 
-      console.log("User:", user);
-      res.send(user);
-    }
-  );
-  //   const user = await User.findOne({
+    let newUser = {
+      username: req.body.username,
+      email: req.body.email,
+      password: req.body.password,
+    };
+
+    await User.insertMany(newUser);
+
+    res.status(200).send(newUser);
+  } catch (err) {
+    res.status(400).send("Something wrong");
+    console.error(err);
+    return;
+  }
+
+  //Register Using Callback
+  // User.findOne(
+  //   {
   //     username: req.body.username,
   //     email: req.body.email,
-  //   });
+  //   },
+  //   function (err, user) {
+  //     if (err) {
+  //       res.send(err);
+  //       return;
+  //     }
+  //     if (user && user != null) return res.send("User already existed");
 
-  //   if (user) return res.status(400).send("User or Email has already existed");
+  //     let newUser = {
+  //       username: req.body.username,
+  //       email: req.body.email,
+  //       password: req.body.password,
+  //     };
 
-  //   let newUser = {
-  //     username: req.body.username,
-  //     email: req.body.email,
-  //     password: req.body.password,
-  //   };
-
-  //   await User.insertMany(newUser);
+  //     User.insertMany(newUser, function (err, user) {
+  //       if (err) return res.send(err);
+  //       res.send(user);
+  //     });
+  //   }
+  // );
 });
+
+//Login User
+// router.post("/login", (req, res) => {
+//   const { error } = validateUser(body.req);
+//   if (error) return res.status(400).send(error.details[0].message);
+
+//   User.find
+// });
 
 module.exports = router;
